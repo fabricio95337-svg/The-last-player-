@@ -4,28 +4,69 @@ extends CharacterBody3D
 @export var jump_velocity = 4.5
 
 var gravity = 9.8
+var move_input = Vector2.ZERO
+
+func _ready():
+    create_controls()
 
 func _physics_process(delta):
     if not is_on_floor():
         velocity.y -= gravity * delta
 
-    var input_dir = Vector2.ZERO
+    var direction = Vector3(move_input.x, 0, move_input.y)
 
     if Input.is_key_pressed(KEY_W):
-        input_dir.y -= 1
+        direction.z = -1
     if Input.is_key_pressed(KEY_S):
-        input_dir.y += 1
+        direction.z = 1
     if Input.is_key_pressed(KEY_A):
-        input_dir.x -= 1
+        direction.x = -1
     if Input.is_key_pressed(KEY_D):
-        input_dir.x += 1
+        direction.x = 1
 
-    var direction = Vector3(input_dir.x, 0, input_dir.y).normalized()
+    direction = direction.normalized()
 
     velocity.x = direction.x * speed
     velocity.z = direction.z * speed
 
-    if Input.is_key_pressed(KEY_SPACE) and is_on_floor():
-        velocity.y = jump_velocity
-
     move_and_slide()
+
+func create_controls():
+    var layer = CanvasLayer.new()
+    add_child(layer)
+
+    var ui = Control.new()
+    ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    layer.add_child(ui)
+
+    add_button(ui, "↑", Vector2(90, -190), false, Vector2(0, -1))
+    add_button(ui, "↓", Vector2(90, -90), false, Vector2(0, 1))
+    add_button(ui, "←", Vector2(30, -140), false, Vector2(-1, 0))
+    add_button(ui, "→", Vector2(150, -140), false, Vector2(1, 0))
+    add_button(ui, "SALTAR", Vector2(-160, -130), true)
+
+func add_button(ui, label, pos, jump, dir = Vector2.ZERO):
+    var button = Button.new()
+    button.text = label
+    button.custom_minimum_size = Vector2(90, 65)
+    button.position = pos
+    button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+
+    if jump:
+        button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+        button.position = pos
+
+    ui.add_child(button)
+
+    if jump:
+        button.button_down.connect(func():
+            if is_on_floor():
+                velocity.y = jump_velocity
+        )
+    else:
+        button.button_down.connect(func():
+            move_input = dir
+        )
+        button.button_up.connect(func():
+            move_input = Vector2.ZERO
+        )
